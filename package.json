@@ -1,0 +1,27 @@
+{
+  "name": "express-task",
+  "version": "1.0.0",
+  "description": "REST API backend using Express, TypeScript, PostgreSQL and Drizzle ORM",
+  "keywords": [
+    "express",
+    "typescript",
+    "postgresql",
+    "drizzle",
+    "rest-api"
+  ],
+  "homepage": "https://github.com/samia-oishi/expressTask#readme",
+  "bugs": {
+    "url": "https://github.com/samia-oishi/expressTask/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samia-oishi/expressTask.git"
+  },
+  "license": "MIT",
+  "author": "oishi",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
