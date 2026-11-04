@@ -1,16 +1,9 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middlewares.js";
+import { getCurrentUser } from "../controllers/user.controllers.js";
 
 const router = Router();
 
-router.get("/me", authenticate, (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "Authenticated user retrieved successfully",
-    data: {
-      user: req.user,
-    },
-  });
-});
+router.get("/me", authenticate, getCurrentUser);
 
 export default router;

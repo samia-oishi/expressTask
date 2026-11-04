@@ -4,19 +4,17 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import { users } from "../db/schema/users.schema.js";
+import { AppError } from "../errors/app-error.js";
 
 export async function authenticate(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication token is required",
-    });
+    return next(new AppError(401, "Authentication token is required"));
   }
 
   const token = authHeader.slice(7);
@@ -26,10 +24,7 @@ export async function authenticate(
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET!);
   } catch {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token",
-    });
+    return next(new AppError(401, "Invalid or expired token"));
   }
 
   if (
@@ -37,10 +32,7 @@ export async function authenticate(
     typeof decoded.sub !== "string" ||
     typeof decoded.tokenVersion !== "number"
   ) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid token payload",
-    });
+    return next(new AppError(401, "Invalid token payload"));
   }
 
   try {
@@ -55,10 +47,7 @@ export async function authenticate(
       .limit(1);
 
     if (!user || user.tokenVersion !== decoded.tokenVersion) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
+      return next(new AppError(401, "Invalid or expired token"));
     }
 
     req.user = {
