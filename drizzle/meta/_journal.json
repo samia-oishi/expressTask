@@ -15,6 +15,27 @@
       "when": 1793770979524,
       "tag": "0001_account_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793782448695,
+      "tag": "0002_add_user_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793786170523,
+      "tag": "0003_remove_email_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793786804502,
+      "tag": "0004_add_simple_password_reset",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1183 @@
+openapi: 3.1.0
+info:
+  title: Express Task API
+  version: 1.0.0
+  description: |
+    REST API for authentication, profile management, role-based authorization,
+    and the user account lifecycle.
+
+    A Bearer JWT identifies the current user. Protected `/users/me` endpoints use
+    account ownership, while `/admin` endpoints additionally require the current
+    database role to be `admin`.
+servers:
+  - url: /
+    description: Server hosting this documentation
+tags:
+  - name: System
+  - name: Authentication
+  - name: Account
+  - name: Profile
+  - name: Admin
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: Check that the API server is running
+      operationId: getRoot
+      responses:
+        "200":
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    example: Express API is running
+
+  /api/v1/health:
+    get:
+      tags: [System]
+      summary: Get API health status
+      operationId: getHealth
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /openapi.yaml:
+    get:
+      tags: [System]
+      summary: Download the raw OpenAPI specification
+      operationId: getOpenApiSpecification
+      responses:
+        "200":
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /api/v1/echo:
+    post:
+      tags: [System]
+      summary: Echo a JSON request body
+      operationId: echoRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Request body echoed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [receivedData]
+                properties:
+                  receivedData:
+                    type: object
+                    additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Authentication]
+      summary: Create an account and profile
+      description: Creates the user and profile in one database transaction.
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Account and profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignupResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/signin:
+    post:
+      tags: [Authentication]
+      summary: Sign in with email and password
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SigninRequest"
+      responses:
+        "200":
+          description: Signed in successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SigninResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/signout:
+    post:
+      tags: [Authentication]
+      summary: Sign out and invalidate existing access tokens
+      operationId: signout
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Signed out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request a password-reset email
+      description: Returns the same success message for eligible and unknown accounts.
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailOnlyRequest"
+      responses:
+        "200":
+          description: Generic password-reset response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset a password with a single-use token
+      description: A successful reset invalidates all previously issued access tokens.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password reset and sessions invalidated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /reset-password:
+    get:
+      tags: [Authentication]
+      summary: Open the password-reset form
+      operationId: getPasswordResetPage
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/SecurityToken"
+      responses:
+        "200":
+          description: Password-reset HTML form
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: Invalid reset-link format
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags: [Authentication]
+      summary: Submit the password-reset form
+      operationId: submitPasswordResetPage
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: Invalid, expired, or used token or invalid password
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/v1/auth/reactivate:
+    post:
+      tags: [Authentication]
+      summary: Reactivate a deactivated account
+      description: Requires valid account credentials.
+      operationId: reactivateAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SigninRequest"
+      responses:
+        "200":
+          description: Account reactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/me:
+    get:
+      tags: [Account]
+      summary: Get the authenticated account
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current account retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Account]
+      summary: Permanently delete the authenticated account
+      description: |
+        Permanently deletes the user and profile. This action
+        cannot be undone and requires current-password confirmation.
+      operationId: deleteCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordConfirmationRequest"
+      responses:
+        "204":
+          description: Account permanently deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/me/password:
+    patch:
+      tags: [Account]
+      summary: Change the authenticated account password
+      description: Invalidates existing access tokens after the change succeeds.
+      operationId: changeCurrentPassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed and sessions invalidated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/me/deactivate:
+    post:
+      tags: [Account]
+      summary: Temporarily deactivate the authenticated account
+      description: |
+        The user will no longer be able to sign in, but account and profile data
+        are retained. Existing access tokens are invalidated.
+      operationId: deactivateCurrentAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordConfirmationRequest"
+      responses:
+        "200":
+          description: Account deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/me/profile:
+    get:
+      tags: [Profile]
+      summary: Get the authenticated user's profile
+      operationId: getCurrentProfile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      tags: [Profile]
+      summary: Partially update the authenticated user's profile
+      description: Email cannot be changed through this endpoint.
+      operationId: updateCurrentProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/admin/users:
+    get:
+      tags: [Admin]
+      summary: List registered users
+      description: Requires the current database role to be `admin`.
+      operationId: listAdminUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          description: Case-insensitive email or display-name search.
+          schema:
+            type: string
+            maxLength: 255
+        - name: role
+          in: query
+          schema:
+            $ref: "#/components/schemas/UserRole"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/AccountStatus"
+      responses:
+        "200":
+          description: Paginated users retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/admin/users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [Admin]
+      summary: Get another user's account and profile details
+      operationId: getAdminUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Admin]
+      summary: Permanently delete another user
+      description: |
+        Irreversibly deletes the target and cascades to profile and token records.
+        The calling admin cannot target itself or delete the last active admin.
+      operationId: deleteAdminUser
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: User permanently deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/admin/users/{userId}/role:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    patch:
+      tags: [Admin]
+      summary: Change another user's role
+      description: Invalidates the target user's existing sessions.
+      operationId: updateAdminUserRole
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleRequest"
+      responses:
+        "200":
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRoleUpdateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/admin/users/{userId}/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [Admin]
+      summary: Deactivate another user
+      description: Preserves data and invalidates the target user's sessions.
+      operationId: deactivateAdminUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/admin/users/{userId}/reactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [Admin]
+      summary: Reactivate another user
+      description: Preserves profile data and invalidates older sessions.
+      operationId: reactivateAdminUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User reactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: Target user's UUID. Admin ID-based routes cannot target the caller.
+      schema:
+        type: string
+        format: uuid
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token returned by the signin endpoint.
+
+  responses:
+    BadRequest:
+      description: Invalid request or malformed JSON
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid authentication, or incorrect credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Authenticated action is not currently permitted
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Request conflicts with an existing account or current state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: Password-reset email is not configured
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    MessageResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          example: email
+        message:
+          type: string
+          example: Please provide a valid email address
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          const: false
+        message:
+          type: string
+          example: Validation failed
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+
+    SecurityToken:
+      type: string
+      pattern: "^[a-f0-9]{64}$"
+      description: Single-use 32-byte password-reset token encoded as hexadecimal.
+
+    UserRole:
+      type: string
+      enum: [user, admin]
+
+    AccountStatus:
+      type: string
+      enum: [active, deactivated]
+
+    Email:
+      type: string
+      format: email
+      maxLength: 255
+      example: user@example.com
+
+    NewPassword:
+      type: string
+      format: password
+      writeOnly: true
+      minLength: 8
+      maxLength: 72
+      description: Must not exceed 72 UTF-8 bytes because bcrypt is used.
+      example: TestPassword123!
+
+    SignupRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, displayName]
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        password:
+          $ref: "#/components/schemas/NewPassword"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Test User
+        bio:
+          type: [string, "null"]
+          maxLength: 1000
+          example: Learning backend development
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+          maxLength: 2048
+          example: https://example.com/avatar.png
+
+    SigninRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          maxLength: 72
+          example: TestPassword123!
+
+    EmailOnlyRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+
+    ResetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [token, newPassword]
+      properties:
+        token:
+          $ref: "#/components/schemas/SecurityToken"
+        newPassword:
+          $ref: "#/components/schemas/NewPassword"
+
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          maxLength: 72
+          example: CurrentPassword123!
+        newPassword:
+          $ref: "#/components/schemas/NewPassword"
+
+    PasswordConfirmationRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          maxLength: 72
+          example: CurrentPassword123!
+
+    ProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bio:
+          type: [string, "null"]
+          maxLength: 1000
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+          maxLength: 2048
+
+    PublicUser:
+      type: object
+      additionalProperties: false
+      required: [id, email, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          $ref: "#/components/schemas/Email"
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - userId
+        - displayName
+        - bio
+        - avatarUrl
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        email:
+          $ref: "#/components/schemas/Email"
+        displayName:
+          type: string
+        bio:
+          type: [string, "null"]
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SignupResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [user, profile]
+          properties:
+            user:
+              $ref: "#/components/schemas/PublicUser"
+            profile:
+              $ref: "#/components/schemas/Profile"
+
+    SigninResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [user, accessToken, tokenType, expiresIn]
+          properties:
+            user:
+              type: object
+              additionalProperties: false
+              required: [id, email, role]
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  $ref: "#/components/schemas/Email"
+                role:
+                  $ref: "#/components/schemas/UserRole"
+            accessToken:
+              type: string
+              description: Signed JWT access token.
+            tokenType:
+              type: string
+              const: Bearer
+            expiresIn:
+              type: integer
+              description: Access-token lifetime in seconds.
+              example: 900
+
+    CurrentUserResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [user]
+          properties:
+            user:
+              $ref: "#/components/schemas/PublicUser"
+
+    UpdateUserRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+
+    AdminProfile:
+      type: object
+      additionalProperties: false
+      required: [displayName, bio, avatarUrl, createdAt, updatedAt]
+      properties:
+        displayName:
+          type: string
+        bio:
+          type: [string, "null"]
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdminUser:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - role
+        - status
+        - createdAt
+        - updatedAt
+        - profile
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          $ref: "#/components/schemas/Email"
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        profile:
+          $ref: "#/components/schemas/AdminProfile"
+
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+
+    AdminUserListResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [users, pagination]
+          properties:
+            users:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminUser"
+            pagination:
+              $ref: "#/components/schemas/Pagination"
+
+    AdminUserResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [user]
+          properties:
+            user:
+              $ref: "#/components/schemas/AdminUser"
+
+    AdminRoleUpdateResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [user]
+          properties:
+            user:
+              type: object
+              additionalProperties: false
+              required: [id, role]
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                role:
+                  $ref: "#/components/schemas/UserRole"
+
+    ProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [profile]
+          properties:
+            profile:
+              $ref: "#/components/schemas/Profile"

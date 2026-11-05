@@ -1,0 +1,430 @@
+{
+  "info": {
+    "_postman_id": "cb6dd4d8-39ac-4299-90ec-cd95fc790a39",
+    "name": "Express Task API",
+    "description": "Account lifecycle and admin RBAC QA for the Express Task API. Import the supplied local environment, configure the seeded admin credentials, and run numbered folders in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get('runId')) {",
+          "  const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;",
+          "  pm.environment.set('runId', runId);",
+          "  pm.environment.set('userEmail', `postman-${runId}@example.test`);",
+          "}",
+          "if (!pm.environment.get('targetUserId') && pm.environment.get('userId')) {",
+          "  pm.environment.set('targetUserId', pm.environment.get('userId'));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "jsonContentType", "value": "application/json" }
+  ],
+  "item": [
+    {
+      "name": "01 Setup and basic account QA",
+      "description": "Creates one disposable user, signs in as that user and the seeded admin, and captures IDs/tokens for the RBAC folder.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/health" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('API is healthy', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Signup rejects public role input",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"role\": \"admin\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signup"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Role input is rejected', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Signup disposable user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"bio\": \"Created by the Postman QA collection\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signup"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('User is created', () => pm.response.to.have.status(201));",
+            "var data = pm.response.json().data;",
+            "pm.test('Public signup assigns user role', () => pm.expect(data.user.role).to.eql('user'));",
+            "pm.environment.set('userId', data.user.id);",
+            "pm.environment.set('targetUserId', data.user.id);"
+          ] } }]
+        },
+        {
+          "name": "Signin disposable user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('User signs in', () => pm.response.to.have.status(200));",
+            "var data = pm.response.json().data;",
+            "pm.test('Signin returns user role', () => pm.expect(data.user.role).to.eql('user'));",
+            "pm.environment.set('userToken', data.accessToken);",
+            "pm.environment.set('userId', data.user.id);",
+            "pm.environment.set('targetUserId', data.user.id);"
+          ] } }]
+        },
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/v1/users/me"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Current user is returned', () => pm.response.to.have.status(200));",
+            "pm.test('Safe role is present', () => pm.expect(pm.response.json().data.user.role).to.eql('user'));"
+          ] } }]
+        },
+        {
+          "name": "Get current profile",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/v1/users/me/profile"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Profile is returned', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Update current profile",
+          "request": {
+            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"{{displayName}} Updated\",\n  \"bio\": \"Updated by Postman\"\n}" },
+            "url": "{{baseUrl}}/api/v1/users/me/profile"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Profile is updated', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Signin seeded admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "description": "Set adminEmail/adminPassword in the environment first."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Admin signs in', () => pm.response.to.have.status(200));",
+            "var data = pm.response.json().data;",
+            "pm.test('Database role is admin', () => pm.expect(data.user.role).to.eql('admin'));",
+            "pm.environment.set('adminToken', data.accessToken);",
+            "pm.environment.set('adminUserId', data.user.id);"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "02 Admin RBAC regression",
+      "description": "Run after folder 01. Exercises all six admin endpoints, negative authorization, session invalidation, state conflicts, last-admin safeguards, and deletion.",
+      "item": [
+        {
+          "name": "List users without authentication - 401",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/admin/users" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Authentication is required', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "List users as normal user - 403",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Normal user is forbidden', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "List users with pagination and filters",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/v1/admin/users?page=1&limit=20&search={{runId}}&role=user&status=active"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Filtered list succeeds', () => pm.response.to.have.status(200));",
+            "var data = pm.response.json().data;",
+            "pm.test('Pagination metadata is present', () => { pm.expect(data.pagination.page).to.eql(1); pm.expect(data.pagination.limit).to.eql(20); });",
+            "pm.test('Disposable user is returned', () => pm.expect(data.users.some(user => user.id === pm.environment.get('targetUserId'))).to.be.true);"
+          ] } }]
+        },
+        {
+          "name": "Reject limit over 100 - 400",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users?limit=101" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid limit is rejected', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Get target user details",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Target details are returned', () => pm.response.to.have.status(200));",
+            "pm.test('Security fields are absent', () => { const user = pm.response.json().data.user; pm.expect(user).not.to.have.property('passwordHash'); pm.expect(user).not.to.have.property('tokenVersion'); });"
+          ] } }]
+        },
+        {
+          "name": "Reject invalid target UUID - 400",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/not-a-uuid" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid UUID is rejected', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Reject admin self-target - 403",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{adminUserId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin cannot target self', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Reject invalid role - 400",
+          "request": {
+            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"role\": \"superadmin\" }" },
+            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unknown role is rejected', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Promote target to admin",
+          "request": {
+            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"role\": \"admin\" }" },
+            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Target is promoted', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.user.role).to.eql('admin'); });"] } }]
+        },
+        {
+          "name": "Old user token is invalid after promotion",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users/me" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Promotion invalidates session', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Signin promoted target",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Promoted target signs in as admin', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.user.role).to.eql('admin'); });",
+            "pm.environment.set('targetAdminToken', pm.response.json().data.accessToken);"
+          ] } }]
+        },
+        {
+          "name": "Demote target to user",
+          "request": {
+            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"role\": \"user\" }" },
+            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Target is demoted', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.user.role).to.eql('user'); });"] } }]
+        },
+        {
+          "name": "Promoted token is invalid after demotion",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{targetAdminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users/me" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Demotion invalidates session', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Signin demoted target and refresh user token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Demoted target signs in as user', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.user.role).to.eql('user'); });",
+            "pm.environment.set('userToken', pm.response.json().data.accessToken);"
+          ] } }]
+        },
+        {
+          "name": "Last active admin cannot self-deactivate - 409",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"currentPassword\": \"{{adminPassword}}\" }" },
+            "url": "{{baseUrl}}/api/v1/users/me/deactivate",
+            "description": "This assertion assumes the seeded account is the only active admin after the target is demoted."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Last admin is protected', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Last active admin cannot self-delete - 409",
+          "request": {
+            "method": "DELETE",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"currentPassword\": \"{{adminPassword}}\" }" },
+            "url": "{{baseUrl}}/api/v1/users/me",
+            "description": "This assertion assumes the seeded account is the only active admin after the target is demoted."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Last admin deletion is blocked', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Deactivate target user",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/deactivate" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Target is deactivated', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Old token is invalid after deactivation",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users/me" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Deactivation invalidates session', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Signin deactivated target - 403",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Deactivated signin is forbidden', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Reject repeated deactivation - 409",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/deactivate" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid state is rejected', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Reactivate target user",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/reactivate" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Target is reactivated', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Signin reactivated target",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/signin"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Reactivated target signs in', () => pm.response.to.have.status(200));",
+            "pm.environment.set('userToken', pm.response.json().data.accessToken);"
+          ] } }]
+        },
+        {
+          "name": "Reject repeated reactivation - 409",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/reactivate" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid active state is rejected', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Delete target user",
+          "request": { "method": "DELETE", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Target is permanently deleted', () => pm.response.to.have.status(204));"] } }]
+        },
+        {
+          "name": "Deleted target is not found - 404",
+          "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Deleted target no longer exists', () => pm.response.to.have.status(404));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Manual account flows",
+      "description": "Run these state-changing requests selectively with a suitable existing user.",
+      "item": [
+        {
+          "name": "Request password reset email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"email\": \"{{userEmail}}\" }" },
+            "url": "{{baseUrl}}/api/v1/auth/forgot-password"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reset request is accepted or email is not configured', () => pm.expect(pm.response.code).to.be.oneOf([200, 503]));"] } }]
+        },
+        {
+          "name": "Reset password with emailed token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{passwordResetToken}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/reset-password",
+            "description": "Copy the token from the Gmail reset link into passwordResetToken. Successful reset invalidates previous sessions."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Password is reset', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/users/me/password",
+            "description": "Successful password change invalidates the current token. Update userPassword or sign in with newPassword afterward."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Password is changed', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Sign out and invalidate current session",
+          "request": { "method": "POST", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/auth/signout" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Signout succeeds', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Self-deactivate with password",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"currentPassword\": \"{{userPassword}}\" }" },
+            "url": "{{baseUrl}}/api/v1/users/me/deactivate"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Account is deactivated', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Reactivate with credentials",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/reactivate"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Account is reactivated', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Self-delete permanently",
+          "request": {
+            "method": "DELETE",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "{{jsonContentType}}" }],
+            "body": { "mode": "raw", "raw": "{ \"currentPassword\": \"{{userPassword}}\" }" },
+            "url": "{{baseUrl}}/api/v1/users/me",
+            "description": "Irreversible. Obtain a fresh token before running this request."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Account is deleted', () => pm.response.to.have.status(204));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "OpenAPI YAML",
+          "request": { "method": "GET", "url": "{{baseUrl}}/openapi.yaml" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('OpenAPI document is served', () => { pm.response.to.have.status(200); pm.expect(pm.response.text()).to.include('/api/v1/admin/users'); });"] } }]
+        },
+        {
+          "name": "Swagger UI",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api-docs/" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Swagger UI is served', () => { pm.response.to.have.status(200); pm.expect(pm.response.text()).to.include('Express Task API Documentation'); });"] } }]
+        }
+      ]
+    }
+  ]
+}

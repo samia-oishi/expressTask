@@ -14,6 +14,8 @@ export const accountStatusEnum = pgEnum("account_status", [
   "deactivated",
 ]);
 
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+
 export const users = pgTable(
   "users",
   {
@@ -27,9 +29,7 @@ export const users = pgTable(
 
     status: accountStatusEnum("status").notNull().default("active"),
 
-    emailVerifiedAt: timestamp("email_verified_at", {
-      withTimezone: true,
-    }),
+    role: userRoleEnum("role").notNull().default("user"),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,

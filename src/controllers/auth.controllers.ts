@@ -1,7 +1,20 @@
 import type { Request, Response } from "express";
 
-import { signinSchema, signupSchema } from "../validators/auth.validators.js";
-import { signinUser, signupUser, signoutUser } from "../services/auth.service.js";
+import {
+  forgotPassword,
+  reactivateUser,
+  resetPassword,
+  signinUser,
+  signupUser,
+  signoutUser,
+} from "../services/auth.service.js";
+import {
+  emailOnlySchema,
+  reactivateSchema,
+  resetPasswordSchema,
+  signinSchema,
+  signupSchema,
+} from "../validators/auth.validators.js";
 
 export async function signup(req: Request, res: Response) {
   const input = signupSchema.parse(req.body);
@@ -13,6 +26,7 @@ export async function signup(req: Request, res: Response) {
     data: result,
   });
 }
+
 export async function signin(req: Request, res: Response) {
   const input = signinSchema.parse(req.body);
   const result = await signinUser(input);
@@ -23,11 +37,44 @@ export async function signin(req: Request, res: Response) {
     data: result,
   });
 }
+
 export async function signout(req: Request, res: Response) {
   await signoutUser(req.user!.id);
 
   return res.status(200).json({
     success: true,
     message: "Signed out successfully",
+  });
+}
+
+export async function requestPasswordReset(req: Request, res: Response) {
+  const input = emailOnlySchema.parse(req.body);
+  await forgotPassword(input);
+
+  return res.status(200).json({
+    success: true,
+    message:
+      "If an eligible account exists, password reset instructions will be sent",
+  });
+}
+
+export async function completePasswordReset(req: Request, res: Response) {
+  const input = resetPasswordSchema.parse(req.body);
+  await resetPassword(input);
+
+  return res.status(200).json({
+    success: true,
+    message:
+      "Password reset successfully. Existing sessions were invalidated; sign in again",
+  });
+}
+
+export async function reactivate(req: Request, res: Response) {
+  const input = reactivateSchema.parse(req.body);
+  await reactivateUser(input);
+
+  return res.status(200).json({
+    success: true,
+    message: "Account reactivated successfully. You can now sign in",
   });
 }
