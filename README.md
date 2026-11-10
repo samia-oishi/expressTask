@@ -114,6 +114,53 @@ The default server URL is `http://localhost:5000`. Check it with:
 curl http://localhost:5000/api/v1/health
 ```
 
+## Run the API and database with Docker
+
+This option runs both the compiled Express API and PostgreSQL in containers. It does not require Node.js on the host. The existing `npm run dev` workflow above remains useful for development with live reload.
+
+1. Create `.env` from `.env.example` if you have not already, and configure the PostgreSQL values and a `JWT_SECRET` of at least 32 characters. For password-reset emails, configure both SMTP values and set `APP_BASE_URL` to the address that users can open.
+
+2. Start PostgreSQL and run migrations as a one-off tools container:
+
+   ```bash
+   docker compose up -d db
+   docker compose --profile tools run --rm tools
+   ```
+
+3. Start the API:
+
+   ```bash
+   docker compose up -d --build api
+   ```
+
+4. Test the running API and documentation:
+
+   ```bash
+   curl http://localhost:5000/api/v1/health
+   ```
+
+   Open `http://localhost:5000/api-docs/` for Swagger. If port 5000 is already in use by a locally running API, stop that process or set `API_PORT` to another host port. If you change the host port, use it in Postman and update `APP_BASE_URL` so reset links point to the correct address.
+
+To create the initial administrator inside the tools container, set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_DISPLAY_NAME` in `.env`, then run:
+
+```bash
+docker compose --profile tools run --rm tools npm run seed:admin
+```
+
+Remove the seed password from `.env` after bootstrapping. The tools container is also useful for rerunning migrations after schema changes. Migrations are intentionally a separate step; starting the API does not automatically apply them.
+
+The host-side `DATABASE_URL` can keep using `localhost:5432`. Inside Compose, the API and tools use the `db` service name instead. By default Compose builds their connection URL from `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB`; if credentials contain URL-special characters, set `DOCKER_DATABASE_URL` explicitly with URL-encoded credentials and host `db`. The `.env` file supplies runtime configuration and is excluded from the image.
+
+To inspect or stop the services:
+
+```bash
+docker compose ps
+docker compose logs -f api
+docker compose down
+```
+
+The last command stops the services without deleting the PostgreSQL volume. Avoid `docker compose down -v` unless you intend to delete its stored database data.
+
 ## Environment variables
 
 | Variable | Required | Purpose |
@@ -122,7 +169,9 @@ curl http://localhost:5000/api/v1/health
 | `POSTGRES_PASSWORD` | Docker | PostgreSQL container password |
 | `POSTGRES_DB` | Docker | Initial PostgreSQL database |
 | `DATABASE_URL` | Yes | Full PostgreSQL connection URL used by the app and Drizzle |
+| `DOCKER_DATABASE_URL` | No | Override for the API/tools connection inside Compose; use `db` as the host |
 | `PORT` | No | HTTP port; defaults to 5000 |
+| `API_PORT` | No | Host port mapped to the Dockerized API; defaults to 5000 |
 | `JWT_SECRET` | Yes | Access-token signing secret; minimum 32 characters |
 | `JWT_EXPIRES_IN` | No | Token duration such as `15m`, `1h`, or `1d`; defaults to `15m` |
 | `JWT_ISSUER` | No | Expected JWT issuer |
