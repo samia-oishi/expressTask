@@ -13,7 +13,7 @@ import errorHandler, { notFoundHandler } from "./middlewares/error.middlewares.j
 import userRouter from "./routes/user.routes.js";
 import profileRouter from "./routes/profile.routes.js";
 const app = express();
-
+//to hide powered by express
 app.disable("x-powered-by");
 
 // Parse incoming JSON
