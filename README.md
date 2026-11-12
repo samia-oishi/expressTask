@@ -18,8 +18,6 @@ An API-only account-management backend built with Express, TypeScript, PostgreSQ
 
 The project remains API-focused, with one small server-rendered password-reset form opened from emailed reset links. The health and echo demonstration endpoints are retained.
 
-New to backend development? Read [PROJECT_GUIDE.md](./PROJECT_GUIDE.md) for a beginner-first explanation of the complete architecture, data flow, security decisions, and account lifecycle. Read [module_guide.md](./module_guide.md) to understand the conceptual feature modules inside the layer-based folder structure.
-
 ## Technology
 
 - Node.js and TypeScript
@@ -163,26 +161,26 @@ The last command stops the services without deleting the PostgreSQL volume. Avoi
 
 ## Environment variables
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `POSTGRES_USER` | Docker | PostgreSQL container user |
-| `POSTGRES_PASSWORD` | Docker | PostgreSQL container password |
-| `POSTGRES_DB` | Docker | Initial PostgreSQL database |
-| `DATABASE_URL` | Yes | Full PostgreSQL connection URL used by the app and Drizzle |
-| `DOCKER_DATABASE_URL` | No | Override for the API/tools connection inside Compose; use `db` as the host |
-| `PORT` | No | HTTP port; defaults to 5000 |
-| `API_PORT` | No | Host port mapped to the Dockerized API; defaults to 5000 |
-| `JWT_SECRET` | Yes | Access-token signing secret; minimum 32 characters |
-| `JWT_EXPIRES_IN` | No | Token duration such as `15m`, `1h`, or `1d`; defaults to `15m` |
-| `JWT_ISSUER` | No | Expected JWT issuer |
-| `JWT_AUDIENCE` | No | Expected JWT audience |
-| `BCRYPT_SALT_ROUNDS` | No | Integer from 10 through 15; defaults to 12 |
-| `SMTP_USER` | Password reset | Dedicated Gmail address used to send reset links |
-| `SMTP_APP_PASSWORD` | Password reset | Gmail App Password; never use the normal account password |
-| `APP_BASE_URL` | No | Public application origin used in reset links; defaults to the local server |
-| `ADMIN_EMAIL` | Admin seed | Trusted initial administrator email |
-| `ADMIN_PASSWORD` | Admin seed | Initial administrator password |
-| `ADMIN_DISPLAY_NAME` | Admin seed | Initial administrator profile name |
+| Variable              | Required       | Purpose                                                                     |
+| --------------------- | -------------- | --------------------------------------------------------------------------- |
+| `POSTGRES_USER`       | Docker         | PostgreSQL container user                                                   |
+| `POSTGRES_PASSWORD`   | Docker         | PostgreSQL container password                                               |
+| `POSTGRES_DB`         | Docker         | Initial PostgreSQL database                                                 |
+| `DATABASE_URL`        | Yes            | Full PostgreSQL connection URL used by the app and Drizzle                  |
+| `DOCKER_DATABASE_URL` | No             | Override for the API/tools connection inside Compose; use `db` as the host  |
+| `PORT`                | No             | HTTP port; defaults to 5000                                                 |
+| `API_PORT`            | No             | Host port mapped to the Dockerized API; defaults to 5000                    |
+| `JWT_SECRET`          | Yes            | Access-token signing secret; minimum 32 characters                          |
+| `JWT_EXPIRES_IN`      | No             | Token duration such as `15m`, `1h`, or `1d`; defaults to `15m`              |
+| `JWT_ISSUER`          | No             | Expected JWT issuer                                                         |
+| `JWT_AUDIENCE`        | No             | Expected JWT audience                                                       |
+| `BCRYPT_SALT_ROUNDS`  | No             | Integer from 10 through 15; defaults to 12                                  |
+| `SMTP_USER`           | Password reset | Dedicated Gmail address used to send reset links                            |
+| `SMTP_APP_PASSWORD`   | Password reset | Gmail App Password; never use the normal account password                   |
+| `APP_BASE_URL`        | No             | Public application origin used in reset links; defaults to the local server |
+| `ADMIN_EMAIL`         | Admin seed     | Trusted initial administrator email                                         |
+| `ADMIN_PASSWORD`      | Admin seed     | Initial administrator password                                              |
+| `ADMIN_DISPLAY_NAME`  | Admin seed     | Initial administrator profile name                                          |
 
 Do not commit `.env`. The repository ignores it and only tracks `.env.example`.
 
@@ -222,7 +220,7 @@ The current schema contains:
 
 Profiles and password-reset tokens reference users with `ON DELETE CASCADE`.
 
-## Bootstrap the first administrator
+## Making the first administrator
 
 There is no public promotion or administrator-creation endpoint. Configure these values temporarily in `.env`:
 
@@ -301,40 +299,40 @@ All application endpoints are under `/api/v1`.
 
 ### Authentication
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `POST` | `/auth/signup` | Create an account and profile |
-| `POST` | `/auth/signin` | Receive an access token |
-| `POST` | `/auth/signout` | Invalidate existing sessions |
-| `POST` | `/auth/forgot-password` | Email a password-reset link |
-| `POST` | `/auth/reset-password` | Reset a password with a token |
-| `POST` | `/auth/reactivate` | Reactivate a deactivated account |
+| Method | Path                    | Purpose                          |
+| ------ | ----------------------- | -------------------------------- |
+| `POST` | `/auth/signup`          | Create an account and profile    |
+| `POST` | `/auth/signin`          | Receive an access token          |
+| `POST` | `/auth/signout`         | Invalidate existing sessions     |
+| `POST` | `/auth/forgot-password` | Email a password-reset link      |
+| `POST` | `/auth/reset-password`  | Reset a password with a token    |
+| `POST` | `/auth/reactivate`      | Reactivate a deactivated account |
 
 The emailed link opens `GET /reset-password`; its form submits to `POST /reset-password`.
 
 ### Current user and profile
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/users/me` | Read safe account fields |
-| `PATCH` | `/users/me/password` | Change password |
-| `POST` | `/users/me/deactivate` | Deactivate own account |
-| `DELETE` | `/users/me` | Permanently delete own account |
-| `GET` | `/users/me/profile` | Read own profile |
-| `PATCH` | `/users/me/profile` | Update own profile |
+| Method   | Path                   | Purpose                        |
+| -------- | ---------------------- | ------------------------------ |
+| `GET`    | `/users/me`            | Read safe account fields       |
+| `PATCH`  | `/users/me/password`   | Change password                |
+| `POST`   | `/users/me/deactivate` | Deactivate own account         |
+| `DELETE` | `/users/me`            | Permanently delete own account |
+| `GET`    | `/users/me/profile`    | Read own profile               |
+| `PATCH`  | `/users/me/profile`    | Update own profile             |
 
 ### Administration
 
 Every admin route requires authentication and the current database role `admin`. Admin routes cannot target the calling administrator's own ID.
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/admin/users` | Search, filter, and paginate users |
-| `GET` | `/admin/users/:userId` | Read safe account/profile details |
-| `PATCH` | `/admin/users/:userId/role` | Assign `user` or `admin` |
-| `POST` | `/admin/users/:userId/deactivate` | Deactivate another account |
-| `POST` | `/admin/users/:userId/reactivate` | Reactivate another account |
-| `DELETE` | `/admin/users/:userId` | Permanently delete another account |
+| Method   | Path                              | Purpose                            |
+| -------- | --------------------------------- | ---------------------------------- |
+| `GET`    | `/admin/users`                    | Search, filter, and paginate users |
+| `GET`    | `/admin/users/:userId`            | Read safe account/profile details  |
+| `PATCH`  | `/admin/users/:userId/role`       | Assign `user` or `admin`           |
+| `POST`   | `/admin/users/:userId/deactivate` | Deactivate another account         |
+| `POST`   | `/admin/users/:userId/reactivate` | Reactivate another account         |
+| `DELETE` | `/admin/users/:userId`            | Permanently delete another account |
 
 User-list query defaults are `page=1` and `limit=20`. The maximum limit is 100. Optional filters are `search`, `role`, and `status`; ordering is deterministic and newest-first.
 
@@ -385,7 +383,3 @@ The current `npm test` script is only a placeholder; automated unit/integration 
 - Error responses avoid leaking SQL or sensitive account details.
 - This training project has no persistent administrator audit-log table.
 - Production deployments should additionally consider rate limiting, abuse protection, key rotation, refresh-token strategy, structured observability, backups, HTTPS enforcement, CORS policy, and automated unit/integration testing.
-
-## License
-
-MIT
