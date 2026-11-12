@@ -354,9 +354,9 @@ Import both files from `postman/`:
 - `Express Task API.postman_collection.json`
 - `Express Task API.postman_environment.json`
 
-Select the imported environment, set `adminEmail` and `adminPassword`, and run folders 01 and 02 in order. The collection generates a disposable user, captures tokens and IDs, tests RBAC/session invalidation, and deletes the disposable account.
+Select **Express Task API - Local**. Requests are grouped like Swagger: System, Authentication, Account, Profile and Admin, with additional checks under Experiments. Follow [the Postman demonstration guide](./postman/README.md) to create a disposable user, capture tokens, configure admin access and run individual requests. State-changing and irreversible requests are marked; do not run the entire collection blindly.
 
-The manual folder contains forgot/reset-password requests. The emailed link can be used directly in a browser, or its token can be copied into the Postman environment. See `postman/README.md` for collection details.
+Real password-reset delivery requires configured SMTP and an accessible mailbox. The link can be opened in a browser or its token used in Postman; see the guide for the complete flow.
 
 ## Scripts and checks
 
