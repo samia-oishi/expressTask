@@ -36,7 +36,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/",
+            "url": "http://localhost:5000/",
             "description": "Public endpoint. Expected: 200 and a simple server-running message."
           },
           "response": [
@@ -45,7 +45,7 @@
               "originalRequest": {
                 "method": "GET",
                 "header": [],
-                "url": "{{baseUrl}}/"
+                "url": "http://localhost:5000/"
               },
               "status": "OK",
               "code": 200,
@@ -76,7 +76,7 @@
           "name": "GET /api/v1/health — Health check",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/health",
+            "url": "http://localhost:5000/api/v1/health",
             "description": "Public health check. Expected: 200."
           },
           "event": [
@@ -95,7 +95,7 @@
           "name": "GET /openapi.yaml — OpenAPI specification",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/openapi.yaml",
+            "url": "http://localhost:5000/openapi.yaml",
             "description": "Returns the same OpenAPI specification used by Swagger UI. Expected: 200 YAML."
           },
           "event": [
@@ -120,7 +120,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/echo",
+            "url": "http://localhost:5000/api/v1/echo",
             "description": "Public demonstration endpoint. Send example JSON; inspect the echoed body in the 200 response.",
             "body": {
               "mode": "raw",
@@ -149,7 +149,7 @@
           "name": "GET /api-docs/ — Swagger UI (extra)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api-docs/",
+            "url": "http://localhost:5000/api-docs/",
             "description": "Extra documentation request: returns the Swagger UI HTML. For the interactive view, open this URL in a browser."
           },
           "event": [
@@ -183,7 +183,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"bio\": \"Created by the Postman QA collection\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signup",
+            "url": "http://localhost:5000/api/v1/auth/signup",
             "description": "Creates a disposable user and profile. Requires a unique userEmail; clear both runId and userEmail to generate a fresh test address. Expected: 201. Saves userId and targetUserId. Use a real accessible mailbox instead if demonstrating email reset."
           },
           "event": [
@@ -217,7 +217,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "url": "http://localhost:5000/api/v1/auth/signin",
             "description": "Sign in the disposable user with userEmail and userPassword. Expected: 200. Saves userToken, userId and targetUserId; a fresh signin replaces the stored token."
           },
           "event": [
@@ -252,7 +252,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "url": "http://localhost:5000/api/v1/auth/signin",
             "description": "Enter the seeded administrator credentials in adminEmail and adminPassword first. Expected: 200. Saves adminToken and adminUserId. This is another example of the Swagger signin operation."
           },
           "event": [
@@ -286,7 +286,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/auth/signout",
+            "url": "http://localhost:5000/api/v1/auth/signout",
             "description": "STATE CHANGE. Requires userToken. Expected: 200. Invalidates this user’s existing access tokens; sign in again before protected requests."
           },
           "event": [
@@ -315,7 +315,7 @@
               "mode": "raw",
               "raw": "{ \"email\": \"{{userEmail}}\" }"
             },
-            "url": "{{baseUrl}}/api/v1/auth/forgot-password",
+            "url": "http://localhost:5000/api/v1/auth/forgot-password",
             "description": "Requires a real accessible email in userEmail and configured SMTP. Expected: generic 200 whether or not an eligible account exists; it does not prove delivery. Missing SMTP gives 503. Check the actual mailbox."
           },
           "event": [
@@ -344,7 +344,7 @@
               "mode": "raw",
               "raw": "{\n  \"token\": \"{{passwordResetToken}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/reset-password",
+            "url": "http://localhost:5000/api/v1/auth/reset-password",
             "description": "Copy only the token parameter from the emailed link to passwordResetToken and set newPassword. Expected: 200 with a valid unused unexpired token. Changes the password and invalidates old JWTs; update userPassword and sign in again."
           },
           "event": [
@@ -364,7 +364,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/reset-password?token={{passwordResetToken}}",
+            "url": "http://localhost:5000/reset-password?token={{passwordResetToken}}",
             "description": "Requires passwordResetToken from an email link. Expected: 200 HTML for a correctly shaped token; this GET checks only token format, not expiry or prior use. Open the email link in a browser to see the form."
           },
           "response": [],
@@ -385,7 +385,7 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": "{{baseUrl}}/reset-password",
+            "url": "http://localhost:5000/reset-password",
             "description": "STATE CHANGE. Requires passwordResetToken from the email and newPassword. This sends URL-encoded form fields. Expected: 200 HTML with a valid unused unexpired token; 400 HTML on invalid token/password. Update userPassword and sign in again.",
             "body": {
               "mode": "urlencoded",
@@ -430,7 +430,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/reactivate",
+            "url": "http://localhost:5000/api/v1/auth/reactivate",
             "description": "STATE CHANGE. Requires a previously deactivated disposable account and its current userEmail/userPassword. Expected: 200; sign in again to receive a token."
           },
           "event": [
@@ -464,7 +464,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "Requires a fresh userToken. Expected: 200 with safe account fields."
           },
           "event": [
@@ -504,7 +504,7 @@
               "mode": "raw",
               "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/password",
+            "url": "http://localhost:5000/api/v1/users/me/password",
             "description": "STATE CHANGE. Requires userToken, current userPassword and a different newPassword. Expected: 200. Old tokens become invalid; update userPassword and sign in again."
           },
           "event": [
@@ -543,7 +543,7 @@
               "mode": "raw",
               "raw": "{ \"currentPassword\": \"{{userPassword}}\" }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/deactivate",
+            "url": "http://localhost:5000/api/v1/users/me/deactivate",
             "description": "STATE CHANGE. Requires userToken and current userPassword for a disposable account. Expected: 200; the profile remains. Reactivate and sign in again. Last active admin returns 409."
           },
           "event": [
@@ -582,7 +582,7 @@
               "mode": "raw",
               "raw": "{ \"currentPassword\": \"{{userPassword}}\" }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "IRREVERSIBLE. Requires userToken and current userPassword. Use only a disposable account. Expected: 204 with no body; profile and reset-token records cascade. Last active admin is protected."
           },
           "event": [
@@ -616,7 +616,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Requires a fresh userToken from Authentication → Sign in. Expected: 200; observe data.profile."
           },
           "event": [
@@ -655,7 +655,7 @@
               "mode": "raw",
               "raw": "{\n  \"displayName\": \"{{displayName}} Updated\",\n  \"bio\": \"Updated by Postman\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Requires a fresh userToken from Authentication → Sign in. Expected: 200; observe data.profile. STATE CHANGE: updates the supplied displayName and bio."
           },
           "event": [
@@ -689,7 +689,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users?page=1&limit=20",
+            "url": "http://localhost:5000/api/v1/admin/users?page=1&limit=20",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin. Default example lists the first 20 users; edit query parameters to demonstrate search, role or status."
           },
           "event": [
@@ -718,7 +718,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin."
           },
           "event": [
@@ -758,7 +758,7 @@
               "mode": "raw",
               "raw": "{ \"role\": \"admin\" }"
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/role",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin. STATE CHANGE: example promotes a normal user to admin and invalidates their old tokens. To demote later set role to user; repeat same role returns 409."
           },
           "event": [
@@ -787,7 +787,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/deactivate",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/deactivate",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin. STATE CHANGE: target must be active. Existing target tokens are invalidated."
           },
           "event": [
@@ -816,7 +816,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/reactivate",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/reactivate",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin. STATE CHANGE: target must be deactivated. Target needs to sign in again."
           },
           "event": [
@@ -845,7 +845,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}",
             "description": "Requires a fresh adminToken from Authentication → Sign in as admin. Expected: 200. The targetUserId must identify another disposable user, not the admin. IRREVERSIBLE: only target a disposable account. Expected: 204; related profile and reset-token records are deleted."
           },
           "event": [
@@ -871,7 +871,7 @@
           "description": "Question: what happens when a protected endpoint receives no Bearer token? Expected: 401 Unauthorized.",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -901,7 +901,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users",
+            "url": "http://localhost:5000/api/v1/admin/users",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -931,7 +931,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"learning-role-{{runId}}@example.test\",\n  \"password\": \"{{userPassword}}\",\n  \"displayName\": \"Role Injection Experiment\",\n  \"role\": \"admin\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signup",
+            "url": "http://localhost:5000/api/v1/auth/signup",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -971,7 +971,7 @@
               "mode": "raw",
               "raw": "{ \"displayName\": \"{{displayName}}\", \"role\": \"admin\" }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1011,7 +1011,7 @@
               "mode": "raw",
               "raw": "{ \"bio\": \"Bio baseline {{runId}}\" }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1051,7 +1051,7 @@
               "mode": "raw",
               "raw": "{ \"displayName\": \"{{displayName}} Omitted Bio Test\" }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1091,7 +1091,7 @@
               "mode": "raw",
               "raw": "{ \"bio\": null }"
             },
-            "url": "{{baseUrl}}/api/v1/users/me/profile",
+            "url": "http://localhost:5000/api/v1/users/me/profile",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1120,7 +1120,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users?limit=101",
+            "url": "http://localhost:5000/api/v1/admin/users?limit=101",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1149,7 +1149,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/not-a-uuid",
+            "url": "http://localhost:5000/api/v1/admin/users/not-a-uuid",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1178,7 +1178,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{adminUserId}}",
+            "url": "http://localhost:5000/api/v1/admin/users/{{adminUserId}}",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1217,7 +1217,7 @@
               "mode": "raw",
               "raw": "{ \"role\": \"superadmin\" }"
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/role",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1246,7 +1246,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1275,7 +1275,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "url": "http://localhost:5000/api/v1/auth/signin",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1315,7 +1315,7 @@
               "mode": "raw",
               "raw": "{ \"role\": \"user\" }"
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/role",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/role",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1344,7 +1344,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1373,7 +1373,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "url": "http://localhost:5000/api/v1/auth/signin",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1403,7 +1403,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/users/me",
+            "url": "http://localhost:5000/api/v1/users/me",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1432,7 +1432,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/v1/auth/signin",
+            "url": "http://localhost:5000/api/v1/auth/signin",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1461,7 +1461,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/deactivate",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/deactivate",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1490,7 +1490,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/reactivate",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}/reactivate",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [
@@ -1519,7 +1519,7 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}",
+            "url": "http://localhost:5000/api/v1/admin/users/{{targetUserId}}",
             "description": "Experiment: inspect the HTTP response and Test Results. See postman/README.md for prerequisites and the required order; some experiments depend on an earlier state change."
           },
           "event": [

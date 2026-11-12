@@ -6,7 +6,7 @@ This collection follows the Swagger UI groups: **System, Authentication, Account
 
 1. Start the API and database using the root README. Check `http://localhost:5000/api/v1/health`.
 2. In Postman, import both `Express Task API.postman_collection.json` and `Express Task API.postman_environment.json` from this folder. Select **Express Task API - Local** in the environment selector.
-3. Open the selected environment. `baseUrl` defaults to `http://localhost:5000`; change it if your server uses another address. Keep the sample passwords for a local disposable test account only.
+3. Requests use `http://localhost:5000` directly. If your server uses another address, update the request URLs in Postman. The environment is still needed for the test email, passwords, IDs and tokens. Keep the sample passwords for a local disposable test account only.
 4. Send **System → GET /api/v1/health**. Expect 200. Then open **Authentication → POST /api/v1/auth/signup**, inspect the example body and send it. A pre-request script creates a unique `runId` and, if `userEmail` is blank, an `@example.test` address. Signup saves the returned user IDs.
 5. Send **Authentication → POST /api/v1/auth/signin — Sign in as user**. Its post-response script saves `userToken`. Send **Account → GET /api/v1/users/me** and **Profile → GET /api/v1/users/me/profile** to use that token.
 6. To demonstrate admin requests, seed a trusted admin using the root README, then enter its credentials into the environment's `adminEmail` and `adminPassword`. Send **Sign in as admin**, which saves `adminToken` and `adminUserId`. Admin requests use `targetUserId` (normally the disposable user from signup), which must be different from the admin ID.
